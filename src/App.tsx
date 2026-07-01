@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
+import { BANNERS } from "./banners";
 import { ProductShowcase } from "./components/product";
 import { ProductsInCarts } from "./components/productInCart";
 import "./index.css";
@@ -10,6 +11,7 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   const [cart, setCart] = useState<ProductInCart[]>(() => {
     const saved = localStorage.getItem("my_cart");
@@ -37,6 +39,10 @@ function App() {
     getProducts();
   }, []);
 
+  const recommendedlist = [...products]
+    .sort((a, b) => b.rating.rate - a.rating.rate)
+    .slice(0, 8);
+
   const ClearCart = () => {
     setCart([]);
   };
@@ -51,6 +57,19 @@ function App() {
     };
     setCart([...cart, newItem]);
   };
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev === BANNERS.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev === 0 ? BANNERS.length - 1 : prev - 1));
+  };
+
+  useEffect(() => {
+    const interval = setInterval(nextSlide, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -102,25 +121,80 @@ function App() {
           <Route
             path="/"
             element={
-              <div className="space-y-6">
-                <h1 className="text-2xl font-bold text-slate-800">
-                  Recommended by customers
-                </h1>
+              <div className="space-y-10">
+                <div className="relative w-full h-[300px] md:h-[400px] bg-slate-200 rounded-2xl overflow-hidden shadow-md group">
+                  <div
+                    className="flex h-full transition-transform duration-500 ease-out"
+                    style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                  >
+                    {BANNERS.map((banner) => (
+                      <div
+                        key={banner.id}
+                        className="w-full h-full flex-shrink-0 relative"
+                      >
+                        <img
+                          src={banner.image}
+                          alt={banner.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-6 md:p-12">
+                          <h2 className="text-white text-xl md:text-3xl font-bold max-w-xl">
+                            {banner.title}
+                          </h2>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-                {loading && <p className="text-slate-500">Loading</p>}
-                {error && <p className="text-red-500">Error</p>}
+                  <button
+                    onClick={prevSlide}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-slate-800 p-3 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 cursor-pointer hidden sm:block z-10"
+                  >
+                    ❮
+                  </button>
 
-                {!loading && !error && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {products.map((item) => (
-                      <ProductShowcase
-                        key={item.id}
-                        {...item}
-                        onAddToCart={() => AddItemToCart(item)}
+                  <button
+                    onClick={nextSlide}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-slate-800 p-3 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 cursor-pointer hidden sm:block z-10"
+                  >
+                    ❯
+                  </button>
+
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                    {BANNERS.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentSlide(index)}
+                        className={`cursor-pointer w-3 h-3 rounded-full transition-all ${
+                          currentSlide === index
+                            ? "bg-white w-6"
+                            : "bg-white/50"
+                        }`}
                       />
                     ))}
                   </div>
-                )}
+                </div>
+
+                <div className="space-y-6">
+                  <h1 className="text-2xl font-bold text-slate-800">
+                    Recommended by customers
+                  </h1>
+
+                  {loading && <p className="text-slate-500">Loading</p>}
+                  {error && <p className="text-red-500">Error</p>}
+
+                  {!loading && !error && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {recommendedlist.map((item) => (
+                        <ProductShowcase
+                          key={item.id}
+                          {...item}
+                          onAddToCart={() => AddItemToCart(item)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             }
           />
