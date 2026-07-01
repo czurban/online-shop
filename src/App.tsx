@@ -167,7 +167,7 @@ function App() {
                     </div>
 
                     <button className="w-full bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition font-bold text-lg cursor-pointer mb-3">
-                      Оформить
+                      Order
                     </button>
 
                     {cart.length > 0 && (
