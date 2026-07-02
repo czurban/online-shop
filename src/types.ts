@@ -12,6 +12,11 @@ export interface Product {
   AddItemToCart: (id: number) => void;
 }
 
+export interface Promotions {
+  title: string;
+  image: string;
+}
+
 export interface ProductInCart {
   id: number;
   name: string;

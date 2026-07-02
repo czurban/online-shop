@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
-import { BANNERS } from "./banners";
+import { BANNERS, promotions } from "./arrays";
 import { ProductShowcase } from "./components/product";
 import { ProductsInCarts } from "./components/productInCart";
+import { Promotion } from "./components/promotions";
 import "./index.css";
 import { fetchProducts } from "./services/api";
 import type { Product, ProductInCart } from "./types";
@@ -12,6 +13,7 @@ function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentPosition, setCurrentPosition] = useState(0);
 
   const [cart, setCart] = useState<ProductInCart[]>(() => {
     const saved = localStorage.getItem("my_cart");
@@ -60,6 +62,22 @@ function App() {
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev === BANNERS.length - 1 ? 0 : prev + 1));
+  };
+
+  const maxScroll = promotions.length * 154 - 1100;
+
+  const moveRight = () => {
+    setCurrentPosition((prev) => {
+      const next = prev + 1240;
+      return next > maxScroll ? maxScroll : next;
+    });
+  };
+
+  const moveLeft = () => {
+    setCurrentPosition((prev) => {
+      const next = prev - 1240;
+      return next > 0 ? 0 : next;
+    });
   };
 
   const prevSlide = () => {
@@ -172,6 +190,48 @@ function App() {
                         }`}
                       />
                     ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-slate-800">
+                      Promotions!
+                    </h2>
+                    <button className="text-blue-800 hover:text-blue-950 text-sm font-semibold transition">
+                      See all ❯
+                    </button>
+                  </div>
+
+                  <div className="w-full overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-slate-200 relative group">
+                    <div
+                      className="flex gap-6 transition-transform duration-500 ease-out"
+                      style={{ transform: `translateX(-${currentPosition}px)` }}
+                    >
+                      {promotions.map((promotion) => (
+                        <Promotion
+                          key={promotion.id}
+                          title={promotion.title}
+                          image={promotion.image}
+                        />
+                      ))}
+                    </div>
+
+                    {currentPosition > 0 && (
+                      <button
+                        onClick={moveLeft}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-800 w-11 h-11 rounded-full shadow-md border border-slate-200 flex items-center justify-center hover:scale-105 transition cursor-pointer z-10"
+                      >
+                        ❮
+                      </button>
+                    )}
+
+                    <button
+                      onClick={moveRight}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-800 w-11 h-11 rounded-full shadow-md border border-slate-200 flex items-center justify-center hover:scale-105 transition cursor-pointer z-10"
+                    >
+                      ❯
+                    </button>
                   </div>
                 </div>
 
