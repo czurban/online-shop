@@ -5,6 +5,7 @@ export interface Product {
   description: string;
   category: string;
   image: string;
+  link: string;
   rating: {
     rate: number;
     count: number;

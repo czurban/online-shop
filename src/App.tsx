@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes } from "react-router-dom";
 import { BANNERS, promotions } from "./arrays";
-import { ProductShowcase } from "./components/product";
-import { ProductsInCarts } from "./components/productInCart";
-import { Promotion } from "./components/promotions";
+import { ProductShowcase } from "./components/Product";
+import { ProductsInCarts } from "./components/ProductInCart";
+import { ProductPage } from "./components/ProductPage";
+import { Promotion } from "./components/Promotions";
 import "./index.css";
 import { fetchProducts } from "./services/api";
 import type { Product, ProductInCart } from "./types";
@@ -315,6 +316,12 @@ function App() {
                   </div>
                 </div>
               </div>
+            }
+          />
+          <Route
+            path="/:category/:title"
+            element={
+              <ProductPage products={products} onAddToCart={AddItemToCart} />
             }
           />
         </Routes>
