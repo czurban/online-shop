@@ -5,6 +5,7 @@ import { ProductShowcase } from "./components/Product";
 import { ProductsInCarts } from "./components/ProductInCart";
 import { ProductPage } from "./components/ProductPage";
 import { Promotion } from "./components/Promotions";
+import { Footer } from "./components/footer";
 import "./index.css";
 import { fetchProducts } from "./services/api";
 import type { Product, ProductInCart } from "./types";
@@ -91,7 +92,7 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
           <NavLink to="/" className="flex-shrink-0 hover:opacity-80 transition">
@@ -135,7 +136,7 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
         <Routes>
           <Route
             path="/"
@@ -326,6 +327,7 @@ function App() {
           />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 }
