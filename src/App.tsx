@@ -1,16 +1,51 @@
 import { useEffect, useState } from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { NavLink, Route, Routes, useParams } from "react-router-dom";
 import { BANNERS, promotions } from "./arrays";
+import { Footer } from "./components/Footer";
 import { ProductShowcase } from "./components/Product";
 import { ProductsInCarts } from "./components/ProductInCart";
 import { ProductPage } from "./components/ProductPage";
 import { Promotion } from "./components/Promotions";
-import { Footer } from "./components/footer";
 import "./index.css";
 import { fetchProducts } from "./services/api";
 import type { Product, ProductInCart } from "./types";
 
+function SearchResultsPage({
+  products,
+  onAddToCart,
+}: {
+  products: Product[];
+  onAddToCart: (p: Product) => void;
+}) {
+  const { searchValue } = useParams<{ searchValue: string }>();
+
+  const filtered = products.filter((item) =>
+    item.title.toLowerCase().includes((searchValue || "").toLowerCase()),
+  );
+
+  if (filtered.length === 0) {
+    return (
+      <p className="text-slate-500 text-center py-10">
+        No products found for "{searchValue}"
+      </p>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {filtered.map((product) => (
+        <ProductShowcase
+          key={product.id}
+          {...product}
+          onAddToCart={() => onAddToCart(product)}
+        />
+      ))}
+    </div>
+  );
+}
+
 function App() {
+  const [searchValue, setSearchValue] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,12 +143,16 @@ function App() {
           <div className="flex flex-1 max-w-xl">
             <input
               type="text"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               placeholder="What are you looking for?"
               className="w-full px-4 py-2 border border-slate-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             />
-            <button className="bg-blue-800 text-white px-6 py-2 rounded-r-lg hover:bg-blue-900 transition font-medium">
-              Search
-            </button>
+            <NavLink to={`/search/${encodeURIComponent(searchValue)}`}>
+              <button className="bg-blue-800 text-white cursor-pointer px-6 py-2 rounded-r-lg hover:bg-blue-900 transition font-medium">
+                Search
+              </button>
+            </NavLink>
           </div>
 
           <div className="flex items-center gap-4 flex-shrink-0">
@@ -323,6 +362,15 @@ function App() {
             path="/:category/:title"
             element={
               <ProductPage products={products} onAddToCart={AddItemToCart} />
+            }
+          />
+          <Route
+            path="/search/:searchValue"
+            element={
+              <SearchResultsPage
+                products={products}
+                onAddToCart={AddItemToCart}
+              />
             }
           />
         </Routes>
