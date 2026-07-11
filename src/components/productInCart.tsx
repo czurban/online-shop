@@ -16,7 +16,7 @@ export const ProductsInCarts = ({
         <p className="text-slate-500 text-sm line-clamp-2">{description}</p>
       </div>
       <p className="font-bold whitespace-nowrap text-slate-900 ml-auto">
-        {price}
+        {price} $
       </p>
     </div>
   );

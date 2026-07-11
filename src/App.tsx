@@ -10,7 +10,6 @@ import { BANNERS, accounts as initialAccounts, promotions } from "./arrays";
 import { Footer } from "./components/Footer";
 import { ProductShowcase } from "./components/product";
 import { ProductsInCarts } from "./components/productInCart";
-import { ProductPage } from "./components/productPage";
 import { Promotion } from "./components/promotions";
 import "./index.css";
 import { fetchProducts } from "./services/api";
@@ -25,13 +24,21 @@ function SearchResultsPage({
 }) {
   const { searchValue } = useParams<{ searchValue: string }>();
 
+  if (!searchValue || searchValue.trim() === "") {
+    return (
+      <p className="text-slate-500 text-center py-10 font-medium">
+        Please enter something in the search bar to find products.
+      </p>
+    );
+  }
+
   const filtered = products.filter((item) =>
     item.title.toLowerCase().includes((searchValue || "").toLowerCase()),
   );
 
   if (filtered.length === 0) {
     return (
-      <p className="text-slate-500 text-center py-10">
+      <p className="text-slate-500 text-center py-10 font-medium">
         No products found for "{searchValue}"
       </p>
     );
@@ -122,7 +129,7 @@ function App() {
     setCurrentSlide((prev) => (prev === BANNERS.length - 1 ? 0 : prev + 1));
   };
 
-  const maxScroll = promotions.length * 154 - 1100;
+  const maxScroll = promotions.length * 147 - 1100;
 
   function addAccount() {
     if (!mail || !password || !username) {
@@ -221,7 +228,13 @@ function App() {
               placeholder="What are you looking for?"
               className="w-full px-4 py-2 border border-slate-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             />
-            <NavLink to={`/search/${encodeURIComponent(searchValue)}`}>
+            <NavLink
+              to={
+                searchValue.trim()
+                  ? `/search/${encodeURIComponent(searchValue.trim())}`
+                  : "/search"
+              }
+            >
               <button className="bg-blue-800 text-white cursor-pointer px-6 py-2 rounded-r-lg hover:bg-blue-900 transition font-medium">
                 Search
               </button>
@@ -458,9 +471,12 @@ function App() {
             }
           />
           <Route
-            path="/:category/:title"
+            path="/search"
             element={
-              <ProductPage products={products} onAddToCart={AddItemToCart} />
+              <SearchResultsPage
+                products={products}
+                onAddToCart={AddItemToCart}
+              />
             }
           />
           <Route
