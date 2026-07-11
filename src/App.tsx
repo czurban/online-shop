@@ -8,10 +8,10 @@ import {
 } from "react-router-dom";
 import { BANNERS, accounts as initialAccounts, promotions } from "./arrays";
 import { Footer } from "./components/Footer";
-import { ProductShowcase } from "./components/Product";
-import { ProductsInCarts } from "./components/ProductInCart";
-import { ProductPage } from "./components/ProductPage";
-import { Promotion } from "./components/Promotions";
+import { ProductShowcase } from "./components/product";
+import { ProductsInCarts } from "./components/productInCart";
+import { ProductPage } from "./components/productPage";
+import { Promotion } from "./components/promotions";
 import "./index.css";
 import { fetchProducts } from "./services/api";
 import type { account, Product, ProductInCart } from "./types";
