@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
-import { NavLink, Route, Routes, useParams } from "react-router-dom";
-import { BANNERS, promotions } from "./arrays";
+import {
+  NavLink,
+  Route,
+  Routes,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+import { BANNERS, accounts as initialAccounts, promotions } from "./arrays";
 import { Footer } from "./components/Footer";
 import { ProductShowcase } from "./components/Product";
 import { ProductsInCarts } from "./components/ProductInCart";
@@ -8,7 +14,7 @@ import { ProductPage } from "./components/ProductPage";
 import { Promotion } from "./components/Promotions";
 import "./index.css";
 import { fetchProducts } from "./services/api";
-import type { Product, ProductInCart } from "./types";
+import type { account, Product, ProductInCart } from "./types";
 
 function SearchResultsPage({
   products,
@@ -45,6 +51,12 @@ function SearchResultsPage({
 }
 
 function App() {
+  const navigate = useNavigate();
+  const [isLogined, setIsLogined] = useState<boolean>(false);
+  const [currentUsername, setCurrentUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [mail, setMail] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -52,10 +64,19 @@ function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentPosition, setCurrentPosition] = useState(0);
 
+  const [allAccounts, setAllAccounts] = useState<account[]>(() => {
+    const savedAccounts = localStorage.getItem("my_accounts");
+    return savedAccounts ? JSON.parse(savedAccounts) : initialAccounts;
+  });
+
   const [cart, setCart] = useState<ProductInCart[]>(() => {
     const saved = localStorage.getItem("my_cart");
     return saved ? JSON.parse(saved) : [];
   });
+
+  useEffect(() => {
+    localStorage.setItem("my_accounts", JSON.stringify(allAccounts));
+  }, [allAccounts]);
 
   useEffect(() => {
     localStorage.setItem("my_cart", JSON.stringify(cart));
@@ -103,12 +124,64 @@ function App() {
 
   const maxScroll = promotions.length * 154 - 1100;
 
+  function addAccount() {
+    if (!mail || !password || !username) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    const newAccount: account = {
+      password: password,
+      username: username,
+      mail: mail,
+    };
+
+    setAllAccounts([...allAccounts, newAccount]);
+
+    setMail("");
+    setPassword("");
+    setUsername("");
+    navigate("/login");
+  }
+
   const moveRight = () => {
     setCurrentPosition((prev) => {
       const next = prev + 1240;
       return next > maxScroll ? maxScroll : next;
     });
   };
+
+  function login() {
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanUsername || !cleanPassword) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    const foundAccount = allAccounts.find(
+      (acc) =>
+        acc.username.trim() === cleanUsername &&
+        acc.password.trim() === cleanPassword,
+    );
+
+    if (foundAccount) {
+      setIsLogined(true);
+      setCurrentUsername(foundAccount.username);
+      setPassword("");
+      setUsername("");
+      alert(`Welcome back, ${foundAccount.username}!`);
+      navigate("/");
+    } else {
+      alert("Invalid username or password");
+    }
+  }
+
+  function logout() {
+    setIsLogined(false);
+    setCurrentUsername("");
+  }
 
   const moveLeft = () => {
     setCurrentPosition((prev) => {
@@ -156,9 +229,35 @@ function App() {
           </div>
 
           <div className="flex items-center gap-4 flex-shrink-0">
-            <button className="text-slate-600 hover:text-blue-600 font-medium transition">
-              Sign in
-            </button>
+            {isLogined ? (
+              <div className="flex items-center gap-3">
+                <span className="text-slate-700 font-medium">
+                  {currentUsername}
+                </span>
+                <button
+                  onClick={logout}
+                  className="text-red-500 hover:text-red-700 font-medium transition cursor-pointer"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <NavLink
+                  className="text-slate-600 hover:text-blue-600 font-medium transition"
+                  to="login"
+                >
+                  Sign in
+                </NavLink>
+                <p className="text-slate-300 shadow-none">/</p>
+                <NavLink
+                  className="text-slate-600 hover:text-blue-600 font-medium transition"
+                  to="registration"
+                >
+                  Sign up
+                </NavLink>
+              </div>
+            )}
             <NavLink
               to="/cart"
               className={({ isActive }) =>
@@ -350,7 +449,7 @@ function App() {
                         onClick={ClearCart}
                         className="w-full cursor-pointer text-center text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 py-2 rounded-xl transition"
                       >
-                        🗑️ Clear Cart
+                        Clear Cart
                       </button>
                     )}
                   </div>
@@ -371,6 +470,120 @@ function App() {
                 products={products}
                 onAddToCart={AddItemToCart}
               />
+            }
+          />
+          <Route
+            path="registration"
+            element={
+              <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 flex-grow">
+                <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-3xl font-bold text-slate-900">
+                      Create account
+                    </h2>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Join our online shop today
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Email address
+                      </label>
+                      <input
+                        value={mail}
+                        onChange={(e) => setMail(e.target.value)}
+                        type="email"
+                        placeholder="you@example.com"
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Password
+                      </label>
+                      <input
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        type="password"
+                        placeholder="••••••••"
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Username
+                      </label>
+                      <input
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        type="text"
+                        placeholder="Username"
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={addAccount}
+                      className="w-full bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition font-bold text-lg cursor-pointer mt-2 active:scale-[0.98]"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          />
+          <Route
+            path="login"
+            element={
+              <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 flex-grow">
+                <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-3xl font-bold text-slate-900">
+                      Sign In
+                    </h2>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Username
+                    </label>
+                    <input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      type="text"
+                      placeholder="Username"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Password
+                    </label>
+                    <input
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={login}
+                    className="w-full bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition font-bold text-lg cursor-pointer mt-2 active:scale-[0.98]"
+                  >
+                    Log in
+                  </button>
+                </div>
+              </div>
             }
           />
         </Routes>

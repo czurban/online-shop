@@ -13,6 +13,12 @@ export interface Product {
   AddItemToCart: (id: number) => void;
 }
 
+export interface account {
+  password: string;
+  username: string;
+  mail: string;
+}
+
 export interface Promotions {
   title: string;
   image: string;

@@ -112,3 +112,5 @@ export const promotions = [
     title: "a18",
   },
 ];
+
+export const accounts = [];
