@@ -10,10 +10,92 @@ import { BANNERS, accounts as initialAccounts, promotions } from "./arrays";
 import { Footer } from "./components/Footer";
 import { ProductShowcase } from "./components/product";
 import { ProductsInCarts } from "./components/productInCart";
+import { ProductPage } from "./components/productPage";
 import { Promotion } from "./components/promotions";
 import "./index.css";
 import { fetchProducts } from "./services/api";
 import type { account, Product, ProductInCart } from "./types";
+
+function Sidebar({ categories }: { categories: string[] }) {
+  return (
+    <aside className="hidden xl:block absolute -left-72 top-14 w-64 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <h3 className="text-lg font-bold text-slate-800 mb-4 uppercase tracking-wider">
+        Categories
+      </h3>
+      <ul className="space-y-2">
+        <li>
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `block px-4 py-2 rounded-lg font-medium transition-all ${
+                isActive
+                  ? "bg-blue-50 text-blue-800 shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`
+            }
+          >
+            All Products
+          </NavLink>
+        </li>
+        {categories.map((category, index) => (
+          <li key={index}>
+            <NavLink
+              to={`/category/${encodeURIComponent(category)}`}
+              className={({ isActive }) =>
+                `block px-4 py-2 rounded-lg font-medium transition-all capitalize ${
+                  isActive
+                    ? "bg-blue-50 text-blue-800 shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`
+              }
+            >
+              {category}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+
+function CategoryPage({
+  products,
+  onAddToCart,
+}: {
+  products: Product[];
+  onAddToCart: (p: Product) => void;
+}) {
+  const { categoryName } = useParams<{ categoryName: string }>();
+  const decodedCategory = decodeURIComponent(categoryName || "");
+
+  const filtered = products.filter((item) => item.category === decodedCategory);
+
+  if (filtered.length === 0) {
+    return (
+      <p className="text-slate-500 text-center py-10 font-medium">
+        No products found in "{decodedCategory}"
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-slate-800 capitalize">
+        {decodedCategory}
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {filtered.map((product) => (
+          <ProductShowcase
+            key={product.id}
+            {...product}
+            onAddToCart={() => onAddToCart(product)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function SearchResultsPage({
   products,
@@ -207,9 +289,37 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col overflow-y-scroll relative">
+      {isLogined ? (
+        <div className="absolute top-4 right-4 md:right-8 z-50 flex items-center gap-3 bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-sm">
+          <span className="text-slate-700 font-medium">{currentUsername}</span>
+          <button
+            onClick={logout}
+            className="text-red-500 hover:text-red-700 font-medium transition cursor-pointer"
+          >
+            Logout
+          </button>
+        </div>
+      ) : (
+        <div className="absolute top-4 right-4 md:right-8 z-50 flex items-center gap-2 bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-sm">
+          <NavLink
+            className="text-slate-600 hover:text-blue-600 font-medium transition"
+            to="/login"
+          >
+            Sign in
+          </NavLink>
+          <p className="text-slate-300 shadow-none">/</p>
+          <NavLink
+            className="text-slate-600 hover:text-blue-600 font-medium transition"
+            to="/registration"
+          >
+            Sign up
+          </NavLink>
+        </div>
+      )}
+
+      <header className="bg-white shadow-sm sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
           <NavLink to="/" className="flex-shrink-0 hover:opacity-80 transition">
             <img
               src="/logo.png"
@@ -241,36 +351,7 @@ function App() {
             </NavLink>
           </div>
 
-          <div className="flex items-center gap-4 flex-shrink-0">
-            {isLogined ? (
-              <div className="flex items-center gap-3">
-                <span className="text-slate-700 font-medium">
-                  {currentUsername}
-                </span>
-                <button
-                  onClick={logout}
-                  className="text-red-500 hover:text-red-700 font-medium transition cursor-pointer"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <NavLink
-                  className="text-slate-600 hover:text-blue-600 font-medium transition"
-                  to="login"
-                >
-                  Sign in
-                </NavLink>
-                <p className="text-slate-300 shadow-none">/</p>
-                <NavLink
-                  className="text-slate-600 hover:text-blue-600 font-medium transition"
-                  to="registration"
-                >
-                  Sign up
-                </NavLink>
-              </div>
-            )}
+          <div className="flex items-center flex-shrink-0">
             <NavLink
               to="/cart"
               className={({ isActive }) =>
@@ -287,7 +368,7 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+      <main className="max-w-5xl mx-auto px-4 py-8 flex-grow w-full">
         <Routes>
           <Route
             path="/"
@@ -351,7 +432,7 @@ function App() {
                     <h2 className="text-2xl font-bold text-slate-800">
                       Promotions!
                     </h2>
-                    <button className="text-blue-800 hover:text-blue-950 text-sm font-semibold transition">
+                    <button className="text-blue-800 hover:text-blue-950 text-sm font-semibold transition cursor-pointer">
                       See all ❯
                     </button>
                   </div>
@@ -359,7 +440,9 @@ function App() {
                   <div className="w-full overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-slate-200 relative group">
                     <div
                       className="flex gap-6 transition-transform duration-500 ease-out"
-                      style={{ transform: `translateX(-${currentPosition}px)` }}
+                      style={{
+                        transform: `translateX(-${currentPosition}px)`,
+                      }}
                     >
                       {promotions.map((promotion) => (
                         <Promotion
@@ -388,27 +471,90 @@ function App() {
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <h1 className="text-2xl font-bold text-slate-800">
-                    Recommended by customers
-                  </h1>
+                <div className="relative w-full space-y-6">
+                  <Sidebar
+                    categories={Array.from(
+                      new Set(products.map((p) => p.category)),
+                    )}
+                  />
 
-                  {loading && <p className="text-slate-500">Loading</p>}
-                  {error && <p className="text-red-500">Error</p>}
+                  <div className="w-full space-y-6">
+                    <h1 className="text-2xl font-bold text-slate-800">
+                      Recommended by customers
+                    </h1>
 
-                  {!loading && !error && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {recommendedlist.map((item) => (
-                        <ProductShowcase
-                          key={item.id}
-                          {...item}
-                          onAddToCart={() => AddItemToCart(item)}
-                        />
-                      ))}
-                    </div>
-                  )}
+                    {loading && <p className="text-slate-500">Loading</p>}
+                    {error && <p className="text-red-500">Error</p>}
+
+                    {!loading && !error && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {recommendedlist.map((item) => (
+                          <ProductShowcase
+                            key={item.id}
+                            {...item}
+                            onAddToCart={() => AddItemToCart(item)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+            }
+          />
+
+          <Route
+            path="/search"
+            element={
+              <div className="relative w-full">
+                <Sidebar
+                  categories={Array.from(
+                    new Set(products.map((p) => p.category)),
+                  )}
+                />
+                <SearchResultsPage
+                  products={products}
+                  onAddToCart={AddItemToCart}
+                />
+              </div>
+            }
+          />
+
+          <Route
+            path="/search/:searchValue"
+            element={
+              <div className="relative w-full">
+                <Sidebar
+                  categories={Array.from(
+                    new Set(products.map((p) => p.category)),
+                  )}
+                />
+                <SearchResultsPage
+                  products={products}
+                  onAddToCart={AddItemToCart}
+                />
+              </div>
+            }
+          />
+
+          <Route
+            path="/category/:categoryName"
+            element={
+              <div className="relative w-full">
+                <Sidebar
+                  categories={Array.from(
+                    new Set(products.map((p) => p.category)),
+                  )}
+                />
+                <CategoryPage products={products} onAddToCart={AddItemToCart} />
+              </div>
+            }
+          />
+
+          <Route
+            path="/:category/:title"
+            element={
+              <ProductPage products={products} onAddToCart={AddItemToCart} />
             }
           />
 
@@ -449,7 +595,12 @@ function App() {
                     <div className="border-t border-slate-100 pt-4 mb-6 flex justify-between items-center">
                       <p className="font-bold text-lg">Summary</p>
                       <p className="font-bold text-2xl text-slate-900">
-                        {`${cart.reduce((sum, item) => sum + (Number(item.price) || 0), 0).toFixed(2)} $`}
+                        {`${cart
+                          .reduce(
+                            (sum, item) => sum + (Number(item.price) || 0),
+                            0,
+                          )
+                          .toFixed(2)} $`}
                       </p>
                     </div>
 
@@ -470,28 +621,11 @@ function App() {
               </div>
             }
           />
-          <Route
-            path="/search"
-            element={
-              <SearchResultsPage
-                products={products}
-                onAddToCart={AddItemToCart}
-              />
-            }
-          />
-          <Route
-            path="/search/:searchValue"
-            element={
-              <SearchResultsPage
-                products={products}
-                onAddToCart={AddItemToCart}
-              />
-            }
-          />
+
           <Route
             path="registration"
             element={
-              <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 flex-grow">
+              <div className="flex items-center justify-center py-12 flex-grow">
                 <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                   <div className="text-center">
                     <h2 className="text-3xl font-bold text-slate-900">
@@ -554,10 +688,11 @@ function App() {
               </div>
             }
           />
+
           <Route
             path="login"
             element={
-              <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 flex-grow">
+              <div className="flex items-center justify-center py-12 flex-grow">
                 <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
                   <div className="text-center">
                     <h2 className="text-3xl font-bold text-slate-900">
