@@ -5,12 +5,10 @@ export interface Product {
   description: string;
   category: string;
   image: string;
-  link: string;
   rating: {
     rate: number;
     count: number;
   };
-  AddItemToCart: (id: number) => void;
 }
 
 export interface account {
@@ -30,4 +28,5 @@ export interface ProductInCart {
   price: number;
   description: string;
   image: string;
+  quantity: number;
 }

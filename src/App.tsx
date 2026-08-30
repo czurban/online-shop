@@ -1,175 +1,45 @@
 import { useEffect, useState } from "react";
-import {
-  NavLink,
-  Route,
-  Routes,
-  useNavigate,
-  useParams,
-} from "react-router-dom";
-import { BANNERS, accounts as initialAccounts, promotions } from "./arrays";
+import { NavLink, Route, Routes } from "react-router-dom";
+import { accounts as initialAccounts } from "./arrays";
 import { Footer } from "./components/Footer";
-import { ProductShowcase } from "./components/product";
-import { ProductsInCarts } from "./components/productInCart";
+import { Layout } from "./components/Layout";
 import { ProductPage } from "./components/productPage";
-import { Promotion } from "./components/promotions";
+import { useCart } from "./hooks/useCart";
 import "./index.css";
+import { CartPage } from "./pages/CartPage";
+import { CategoryPage } from "./pages/CategoryPage";
+import { HomePage } from "./pages/HomePage";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
+import { SearchResultsPage } from "./pages/SearchResultsPage";
 import { fetchProducts } from "./services/api";
-import type { account, Product, ProductInCart } from "./types";
-
-function Sidebar({ categories }: { categories: string[] }) {
-  return (
-    <aside className="hidden xl:block absolute -left-72 top-14 w-64 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-      <h3 className="text-lg font-bold text-slate-800 mb-4 uppercase tracking-wider">
-        Categories
-      </h3>
-      <ul className="space-y-2">
-        <li>
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              `block px-4 py-2 rounded-lg font-medium transition-all ${
-                isActive
-                  ? "bg-blue-50 text-blue-800 shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              }`
-            }
-          >
-            All Products
-          </NavLink>
-        </li>
-        {categories.map((category, index) => (
-          <li key={index}>
-            <NavLink
-              to={`/category/${encodeURIComponent(category)}`}
-              className={({ isActive }) =>
-                `block px-4 py-2 rounded-lg font-medium transition-all capitalize ${
-                  isActive
-                    ? "bg-blue-50 text-blue-800 shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`
-              }
-            >
-              {category}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
-    </aside>
-  );
-}
-
-function CategoryPage({
-  products,
-  onAddToCart,
-}: {
-  products: Product[];
-  onAddToCart: (p: Product) => void;
-}) {
-  const { categoryName } = useParams<{ categoryName: string }>();
-  const decodedCategory = decodeURIComponent(categoryName || "");
-
-  const filtered = products.filter((item) => item.category === decodedCategory);
-
-  if (filtered.length === 0) {
-    return (
-      <p className="text-slate-500 text-center py-10 font-medium">
-        No products found in "{decodedCategory}"
-      </p>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-800 capitalize">
-        {decodedCategory}
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {filtered.map((product) => (
-          <ProductShowcase
-            key={product.id}
-            {...product}
-            onAddToCart={() => onAddToCart(product)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SearchResultsPage({
-  products,
-  onAddToCart,
-}: {
-  products: Product[];
-  onAddToCart: (p: Product) => void;
-}) {
-  const { searchValue } = useParams<{ searchValue: string }>();
-
-  if (!searchValue || searchValue.trim() === "") {
-    return (
-      <p className="text-slate-500 text-center py-10 font-medium">
-        Please enter something in the search bar to find products.
-      </p>
-    );
-  }
-
-  const filtered = products.filter((item) =>
-    item.title.toLowerCase().includes((searchValue || "").toLowerCase()),
-  );
-
-  if (filtered.length === 0) {
-    return (
-      <p className="text-slate-500 text-center py-10 font-medium">
-        No products found for "{searchValue}"
-      </p>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {filtered.map((product) => (
-        <ProductShowcase
-          key={product.id}
-          {...product}
-          onAddToCart={() => onAddToCart(product)}
-        />
-      ))}
-    </div>
-  );
-}
+import type { account, Product } from "./types";
 
 function App() {
-  const navigate = useNavigate();
   const [isLogined, setIsLogined] = useState<boolean>(false);
   const [currentUsername, setCurrentUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [mail, setMail] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [currentPosition, setCurrentPosition] = useState(0);
 
   const [allAccounts, setAllAccounts] = useState<account[]>(() => {
     const savedAccounts = localStorage.getItem("my_accounts");
     return savedAccounts ? JSON.parse(savedAccounts) : initialAccounts;
   });
 
-  const [cart, setCart] = useState<ProductInCart[]>(() => {
-    const saved = localStorage.getItem("my_cart");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const {
+    cart,
+    addItemToCart,
+    removeItemFromCart,
+    changeQuantity,
+    clearCart,
+    totalPrice,
+  } = useCart();
 
   useEffect(() => {
     localStorage.setItem("my_accounts", JSON.stringify(allAccounts));
   }, [allAccounts]);
-
-  useEffect(() => {
-    localStorage.setItem("my_cart", JSON.stringify(cart));
-  }, [cart]);
 
   useEffect(() => {
     const getProducts = async () => {
@@ -177,9 +47,12 @@ function App() {
         setLoading(true);
         const data = await fetchProducts();
         setProducts(data);
+        setError(null);
       } catch (err) {
         console.error(err);
-        setError("error");
+        setError(
+          err instanceof Error ? err.message : "Failed to load products",
+        );
       } finally {
         setLoading(false);
       }
@@ -192,101 +65,21 @@ function App() {
     .sort((a, b) => b.rating.rate - a.rating.rate)
     .slice(0, 8);
 
-  const ClearCart = () => {
-    setCart([]);
-  };
+  const categories = Array.from(new Set(products.map((p) => p.category)));
 
-  const AddItemToCart = (product: Product) => {
-    const newItem: ProductInCart = {
-      id: product.id,
-      name: product.title,
-      price: product.price,
-      description: product.description,
-      image: product.image,
-    };
-    setCart([...cart, newItem]);
-  };
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev === BANNERS.length - 1 ? 0 : prev + 1));
-  };
-
-  const maxScroll = promotions.length * 147 - 1100;
-
-  function addAccount() {
-    if (!mail || !password || !username) {
-      alert("Please fill in all fields");
-      return;
-    }
-
-    const newAccount: account = {
-      password: password,
-      username: username,
-      mail: mail,
-    };
-
-    setAllAccounts([...allAccounts, newAccount]);
-
-    setMail("");
-    setPassword("");
-    setUsername("");
-    navigate("/login");
+  function registerAccount(newAccount: account) {
+    setAllAccounts((prev) => [...prev, newAccount]);
   }
 
-  const moveRight = () => {
-    setCurrentPosition((prev) => {
-      const next = prev + 1240;
-      return next > maxScroll ? maxScroll : next;
-    });
-  };
-
-  function login() {
-    const cleanUsername = username.trim();
-    const cleanPassword = password.trim();
-
-    if (!cleanUsername || !cleanPassword) {
-      alert("Please fill in all fields");
-      return;
-    }
-
-    const foundAccount = allAccounts.find(
-      (acc) =>
-        acc.username.trim() === cleanUsername &&
-        acc.password.trim() === cleanPassword,
-    );
-
-    if (foundAccount) {
-      setIsLogined(true);
-      setCurrentUsername(foundAccount.username);
-      setPassword("");
-      setUsername("");
-      alert(`Welcome back, ${foundAccount.username}!`);
-      navigate("/");
-    } else {
-      alert("Invalid username or password");
-    }
+  function handleLoginSuccess(username: string) {
+    setIsLogined(true);
+    setCurrentUsername(username);
   }
 
   function logout() {
     setIsLogined(false);
     setCurrentUsername("");
   }
-
-  const moveLeft = () => {
-    setCurrentPosition((prev) => {
-      const next = prev - 1240;
-      return next > 0 ? 0 : next;
-    });
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev === 0 ? BANNERS.length - 1 : prev - 1));
-  };
-
-  useEffect(() => {
-    const interval = setInterval(nextSlide, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col overflow-y-scroll relative">
@@ -320,7 +113,7 @@ function App() {
 
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
-          <NavLink to="/" className="flex-shrink-0 hover:opacity-80 transition">
+          <NavLink to="/" className="shrink-0 hover:opacity-80 transition">
             <img
               src="/logo.png"
               width={150}
@@ -351,7 +144,7 @@ function App() {
             </NavLink>
           </div>
 
-          <div className="flex items-center flex-shrink-0">
+          <div className="flex items-center shrink-0">
             <NavLink
               to="/cart"
               className={({ isActive }) =>
@@ -362,379 +155,84 @@ function App() {
                 }`
               }
             >
-              🛒 Cart ({cart.length})
+              🛒 Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})
             </NavLink>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 flex-grow w-full">
+      <main className="max-w-5xl mx-auto px-4 py-8 grow w-full">
         <Routes>
-          <Route
-            path="/"
-            element={
-              <div className="space-y-10">
-                <div className="relative w-full h-[300px] md:h-[400px] bg-slate-200 rounded-2xl overflow-hidden shadow-md group">
-                  <div
-                    className="flex h-full transition-transform duration-500 ease-out"
-                    style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-                  >
-                    {BANNERS.map((banner) => (
-                      <div
-                        key={banner.id}
-                        className="w-full h-full flex-shrink-0 relative"
-                      >
-                        <img
-                          src={banner.image}
-                          alt={banner.title}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-6 md:p-12">
-                          <h2 className="text-white text-xl md:text-3xl font-bold max-w-xl">
-                            {banner.title}
-                          </h2>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={prevSlide}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-slate-800 p-3 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 cursor-pointer hidden sm:block z-10"
-                  >
-                    ❮
-                  </button>
-
-                  <button
-                    onClick={nextSlide}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-slate-800 p-3 rounded-full shadow-md transition opacity-0 group-hover:opacity-100 cursor-pointer hidden sm:block z-10"
-                  >
-                    ❯
-                  </button>
-
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                    {BANNERS.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentSlide(index)}
-                        className={`cursor-pointer w-3 h-3 rounded-full transition-all ${
-                          currentSlide === index
-                            ? "bg-white w-6"
-                            : "bg-white/50"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-slate-800">
-                      Promotions!
-                    </h2>
-                    <button className="text-blue-800 hover:text-blue-950 text-sm font-semibold transition cursor-pointer">
-                      See all ❯
-                    </button>
-                  </div>
-
-                  <div className="w-full overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-slate-200 relative group">
-                    <div
-                      className="flex gap-6 transition-transform duration-500 ease-out"
-                      style={{
-                        transform: `translateX(-${currentPosition}px)`,
-                      }}
-                    >
-                      {promotions.map((promotion) => (
-                        <Promotion
-                          key={promotion.id}
-                          title={promotion.title}
-                          image={promotion.image}
-                        />
-                      ))}
-                    </div>
-
-                    {currentPosition > 0 && (
-                      <button
-                        onClick={moveLeft}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-800 w-11 h-11 rounded-full shadow-md border border-slate-200 flex items-center justify-center hover:scale-105 transition cursor-pointer z-10"
-                      >
-                        ❮
-                      </button>
-                    )}
-
-                    <button
-                      onClick={moveRight}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-800 w-11 h-11 rounded-full shadow-md border border-slate-200 flex items-center justify-center hover:scale-105 transition cursor-pointer z-10"
-                    >
-                      ❯
-                    </button>
-                  </div>
-                </div>
-
-                <div className="relative w-full space-y-6">
-                  <Sidebar
-                    categories={Array.from(
-                      new Set(products.map((p) => p.category)),
-                    )}
-                  />
-
-                  <div className="w-full space-y-6">
-                    <h1 className="text-2xl font-bold text-slate-800">
-                      Recommended by customers
-                    </h1>
-
-                    {loading && <p className="text-slate-500">Loading</p>}
-                    {error && <p className="text-red-500">Error</p>}
-
-                    {!loading && !error && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {recommendedlist.map((item) => (
-                          <ProductShowcase
-                            key={item.id}
-                            {...item}
-                            onAddToCart={() => AddItemToCart(item)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            }
-          />
-
-          <Route
-            path="/search"
-            element={
-              <div className="relative w-full">
-                <Sidebar
-                  categories={Array.from(
-                    new Set(products.map((p) => p.category)),
-                  )}
+          <Route element={<Layout categories={categories} />}>
+            <Route
+              path="/"
+              element={
+                <HomePage
+                  recommendedlist={recommendedlist}
+                  loading={loading}
+                  error={error}
+                  onAddToCart={addItemToCart}
                 />
+              }
+            />
+            <Route
+              path="/search"
+              element={
                 <SearchResultsPage
                   products={products}
-                  onAddToCart={AddItemToCart}
+                  onAddToCart={addItemToCart}
                 />
-              </div>
-            }
-          />
-
-          <Route
-            path="/search/:searchValue"
-            element={
-              <div className="relative w-full">
-                <Sidebar
-                  categories={Array.from(
-                    new Set(products.map((p) => p.category)),
-                  )}
-                />
+              }
+            />
+            <Route
+              path="/search/:searchValue"
+              element={
                 <SearchResultsPage
                   products={products}
-                  onAddToCart={AddItemToCart}
+                  onAddToCart={addItemToCart}
                 />
-              </div>
-            }
-          />
-
-          <Route
-            path="/category/:categoryName"
-            element={
-              <div className="relative w-full">
-                <Sidebar
-                  categories={Array.from(
-                    new Set(products.map((p) => p.category)),
-                  )}
-                />
-                <CategoryPage products={products} onAddToCart={AddItemToCart} />
-              </div>
-            }
-          />
+              }
+            />
+            <Route
+              path="/category/:categoryName"
+              element={
+                <CategoryPage products={products} onAddToCart={addItemToCart} />
+              }
+            />
+          </Route>
 
           <Route
             path="/:category/:title"
             element={
-              <ProductPage products={products} onAddToCart={AddItemToCart} />
+              <ProductPage products={products} onAddToCart={addItemToCart} />
             }
           />
 
           <Route
             path="/cart"
             element={
-              <div className="max-w-4xl mx-auto space-y-6">
-                <div className="flex justify-between items-center">
-                  <h1 className="text-3xl font-bold text-slate-800">
-                    Order in process
-                  </h1>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="md:col-span-2 space-y-4">
-                    {cart.length === 0 ? (
-                      <p className="text-slate-500">Your Cart Is Empty</p>
-                    ) : (
-                      cart.map((item, index) => (
-                        <ProductsInCarts
-                          id={item.id}
-                          key={index}
-                          name={item.name}
-                          price={item.price}
-                          description={item.description}
-                          image={item.image}
-                        />
-                      ))
-                    )}
-                  </div>
-
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-fit sticky top-24 flex flex-col">
-                    <div className="flex justify-between text-slate-600 mb-6">
-                      <p>Delivery</p>
-                      <p className="text-green-600 font-medium">Free</p>
-                    </div>
-
-                    <div className="border-t border-slate-100 pt-4 mb-6 flex justify-between items-center">
-                      <p className="font-bold text-lg">Summary</p>
-                      <p className="font-bold text-2xl text-slate-900">
-                        {`${cart
-                          .reduce(
-                            (sum, item) => sum + (Number(item.price) || 0),
-                            0,
-                          )
-                          .toFixed(2)} $`}
-                      </p>
-                    </div>
-
-                    <button className="w-full bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition font-bold text-lg cursor-pointer mb-3">
-                      Order
-                    </button>
-
-                    {cart.length > 0 && (
-                      <button
-                        onClick={ClearCart}
-                        className="w-full cursor-pointer text-center text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 py-2 rounded-xl transition"
-                      >
-                        Clear Cart
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <CartPage
+                cart={cart}
+                totalPrice={totalPrice}
+                onRemove={removeItemFromCart}
+                onChangeQuantity={changeQuantity}
+                onClear={clearCart}
+              />
             }
           />
 
           <Route
             path="registration"
-            element={
-              <div className="flex items-center justify-center py-12 flex-grow">
-                <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                  <div className="text-center">
-                    <h2 className="text-3xl font-bold text-slate-900">
-                      Create account
-                    </h2>
-                    <p className="mt-2 text-sm text-slate-500">
-                      Join our online shop today
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Email address
-                      </label>
-                      <input
-                        value={mail}
-                        onChange={(e) => setMail(e.target.value)}
-                        type="email"
-                        placeholder="you@example.com"
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Password
-                      </label>
-                      <input
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        type="password"
-                        placeholder="••••••••"
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Username
-                      </label>
-                      <input
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        type="text"
-                        placeholder="Username"
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={addAccount}
-                      className="w-full bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition font-bold text-lg cursor-pointer mt-2 active:scale-[0.98]"
-                    >
-                      Sign Up
-                    </button>
-                  </div>
-                </div>
-              </div>
-            }
+            element={<RegisterPage onRegister={registerAccount} />}
           />
 
           <Route
             path="login"
             element={
-              <div className="flex items-center justify-center py-12 flex-grow">
-                <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-                  <div className="text-center">
-                    <h2 className="text-3xl font-bold text-slate-900">
-                      Sign In
-                    </h2>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Username
-                    </label>
-                    <input
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      type="text"
-                      placeholder="Username"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Password
-                    </label>
-                    <input
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      type="password"
-                      placeholder="••••••••"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-slate-900 bg-white"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={login}
-                    className="w-full bg-blue-800 text-white py-3 rounded-xl hover:bg-blue-900 transition font-bold text-lg cursor-pointer mt-2 active:scale-[0.98]"
-                  >
-                    Log in
-                  </button>
-                </div>
-              </div>
+              <LoginPage
+                accounts={allAccounts}
+                onLoginSuccess={handleLoginSuccess}
+              />
             }
           />
         </Routes>
